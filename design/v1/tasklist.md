@@ -2,8 +2,8 @@
 
 ## High-Level Design
 
-- [ ] 1. System architecture — two-plane overview (metadata + blob), component diagram, data flow, trade-offs
-- [ ] 2. HLD document — scaling strategy, consistency model, failure modes, capacity estimates (100M user analysis)
+- [@] 1. System architecture — two-plane overview (metadata + blob), component diagram, data flow, trade-offs
+- [@] 2. HLD document — scaling strategy, consistency model, failure modes, capacity estimates (100M user analysis)
 
 ## Low-Level Design
 
