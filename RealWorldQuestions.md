@@ -729,4 +729,230 @@ The client UI should show read-only indicators for viewer-role files, but that's
 
 ---
 
-*More sections will be added as diagram and protocol documents are completed.*
+## Upload/Download: Protocol Deep Dives
+
+### Q: Why does the client chunk the file before calling the API, instead of streaming the file to the API and letting the server chunk it?
+
+Three reasons:
+
+1. **The API never touches file bytes.** That's the core design. If the API chunked the file, it would need to receive the entire file (or stream it), consuming bandwidth and memory. At scale, the API would be a bandwidth bottleneck.
+2. **Dedup requires hashes upfront.** The API needs to know the chunk hashes before issuing presigned URLs so it can check which chunks already exist. If the client streamed first, we'd lose the dedup-before-transfer optimization.
+3. **Client controls resume granularity.** The client knows exactly which chunks succeeded and which failed. It can retry individual chunks without re-reading the entire file.
+
+Trade-off: the client must implement chunking + hashing. This is trivial in Go (`io.Reader` + `crypto/sha256`) but adds complexity for web browser clients, where you'd use the File API with `Blob.slice()` and the SubtleCrypto API for SHA-256.
+
+### Q: What happens if two clients upload different files with the same name to the same folder simultaneously?
+
+Both call `POST /files` at roughly the same time:
+
+1. Both check name uniqueness — both see the name is available
+2. Both try to INSERT a node row
+3. Postgres unique index `(parent_id, name) WHERE deleted_at IS NULL` catches the second INSERT
+4. The second client gets `409 CONFLICT`
+5. The second client can retry with a different name, or the user renames
+
+No data loss, no race condition. The database constraint is the concurrency control.
+
+### Q: You verify chunks on commit by doing HEAD requests to S3. Isn't that slow for a file with 1000 chunks?
+
+Yes, 1000 sequential HEAD requests would take ~2-3 seconds (S3 HEAD latency is ~2-3ms). Solutions:
+
+1. **Parallel HEAD requests** — fire 50 concurrent HEADs. 1000 chunks / 50 concurrency = 20 rounds × 3ms = ~60ms. Fast enough.
+2. **Trust the client** — skip HEAD verification, just check that chunk rows exist in the `chunks` table. If the client lied about uploading, the download will fail (chunk not in S3). This shifts verification to download time.
+3. **S3 inventory** — for batch verification, use S3 ListObjects with the chunk key prefix. But this is overkill for per-commit verification.
+
+MVP: parallel HEAD requests. It's the safest option — we verify before committing metadata.
+
+### Q: What if S3 is slow or degraded during chunk upload? The presigned URL has a 15-minute timeout.
+
+The presigned URL expiry is for the initial request, not for the entire transfer. Once S3 accepts the PUT connection, the upload streams until complete regardless of the URL expiry.
+
+But if S3 is degraded:
+- PUT requests may timeout → client retries (3 attempts with backoff)
+- If all 3 attempts fail → client reports "upload failed, storage unavailable"
+- The upload is resumable — chunks that succeeded are still in S3. Client can retry later and skip them.
+
+If S3 is down for extended time:
+- All presigned URLs expire (15 min)
+- Client needs to re-init to get fresh URLs
+- The version stays in `uploading` status until commit or cleanup (24h)
+
+### Q: How does the presigned URL signing work? Can a client forge one?
+
+Presigned URLs use AWS Signature Version 4:
+
+1. API server has AWS credentials (access key + secret key)
+2. It constructs a canonical request: method (PUT), bucket, key, expiry
+3. It signs the request with the secret key using HMAC-SHA256
+4. The signature and credential metadata are appended as query parameters
+
+A client cannot forge a presigned URL because it doesn't have the AWS secret key. The URL is tamper-proof — changing any parameter (key, expiry, method) invalidates the signature.
+
+S3 verifies the signature on every request. If it doesn't match, S3 returns `403 Forbidden`.
+
+### Q: Why 4 concurrent chunk uploads/downloads instead of more?
+
+Diminishing returns and resource constraints:
+
+- **Bandwidth saturation**: on a typical home connection (50 Mbps), 4 concurrent 4 MB uploads already saturate the uplink. More parallelism won't help — the network is the bottleneck.
+- **S3 connection limits**: S3 handles massive concurrency per bucket, but each connection has overhead. 4 is reasonable for a single client.
+- **Memory**: each concurrent upload holds a 4 MB buffer. 4 × 4 MB = 16 MB. 50 × 4 MB = 200 MB. Keep it reasonable.
+- **CPU for hashing**: SHA-256 at 4 MB per chunk is fast (~2ms), but on a weak machine, 50 concurrent hash computations could be noticeable.
+
+The concurrency limit should be configurable. Default 4, power users can increase it.
+
+### Q: What prevents a malicious user from uploading 5 GB of garbage and then never committing?
+
+Multiple defenses:
+
+1. **Quota check at init time** — `POST /files` checks `used_bytes + size <= quota_bytes`. If the upload would exceed quota, it's rejected before any chunks are uploaded.
+2. **Orphan cleanup** — the cleanup job runs every 6 hours and deletes `uploading` versions older than 24 hours. Their chunks are also cleaned up if ref_count drops to 0.
+3. **Rate limiting** — caps how many upload inits a user can do per minute.
+4. **Presigned URL expiry** — even if the user gets presigned URLs, they expire in 15 minutes. After that, they can't upload more chunks without re-initing.
+
+The user's quota is NOT decremented until commit. So `uploading` garbage doesn't consume quota — it only consumes S3 storage temporarily until the cleanup job runs.
+
+---
+
+## Sync Protocol: Deep Dives
+
+### Q: Why denormalize the change log per user instead of writing one row and checking permissions at read time?
+
+The sync poll is the highest-QPS operation in the system. At 1M online clients polling every 10 seconds = 100K reads/sec.
+
+**Per-user rows (our approach):**
+```sql
+SELECT * FROM change_log WHERE user_id = $1 AND seq > $2 ORDER BY seq LIMIT 100
+```
+One index scan on `(user_id, seq)`. No joins, no permission checks. Sub-millisecond.
+
+**Single-row + permission check:**
+```sql
+SELECT cl.* FROM change_log cl
+JOIN nodes n ON n.id = cl.node_id
+WHERE cl.seq > $2
+AND (n.owner_id = $1 OR EXISTS (
+    SELECT 1 FROM shares ...  -- recursive ACL check
+))
+ORDER BY cl.seq LIMIT 100
+```
+Joins, subqueries, ACL tree walk — per poll, per user. At 100K polls/sec, this kills the database.
+
+Trade-off: writes are more expensive (one row per affected user). But writes are orders of magnitude less frequent than sync reads. A file upload happens once; the sync poll runs every 10 seconds for every connected client.
+
+### Q: How do you handle the change_log growing to billions of rows?
+
+At 100M users with 5 changes/day average = 500M rows/day (with fan-out to shared users, more).
+
+Strategies, in order of implementation:
+
+1. **Postgres table partitioning** — partition `change_log` by month. Drop old partitions cheaply (`DROP TABLE` is instant vs `DELETE` which rewrites).
+2. **Retention window** — keep 90 days. Clients offline longer than 90 days do a full re-sync.
+3. **Minimum cursor tracking** — track the oldest active cursor across all users. Everything before that is safe to prune (no client will ever request it).
+4. **Move to a dedicated store** — at extreme scale, the change log is essentially an event stream. Move it to Kafka or DynamoDB Streams. Postgres isn't the right tool for append-only, high-throughput, high-retention logs.
+
+MVP: no pruning needed. At 50 users, the change_log will have thousands of rows, not billions.
+
+### Q: What if the sync daemon crashes between applying a change and saving the cursor?
+
+The change gets applied twice on restart. This must be safe — every local operation must be **idempotent**:
+
+- `create file`: if the file already exists locally, skip (or verify hash matches)
+- `move`: if the file is already at the destination, skip
+- `delete`: if the file is already deleted locally, skip
+- `update`: re-download the version — overwrites the local file (idempotent)
+
+The cursor is saved after each batch, not after each individual change. If the daemon crashes mid-batch, it replays the entire batch. Since every operation is idempotent, this is safe.
+
+For extra safety, the daemon can write-ahead log the cursor update: write the new cursor to a temp file, apply changes, then atomically rename the temp file to the cursor file.
+
+### Q: Two devices are online. Device A creates a file. How quickly does Device B see it?
+
+Worst case: 10 seconds (one poll interval) + API latency (~50ms) + download time.
+
+Breakdown:
+1. Device A commits the file → change_log entry written with seq N
+2. Device B polls `GET /changes?cursor=N-1` → returns the new entry
+3. Device B sees `op: create`, downloads the file content via presigned URLs
+4. File appears locally on Device B
+
+Average latency: ~5 seconds (halfway through the poll interval) + download time.
+
+To improve:
+- **Adaptive polling**: poll every 2s when the user is actively working, 30s when idle
+- **Long polling**: hold the request open for 30s, return immediately when a change arrives. Cuts latency to near-zero.
+- **WebSocket/SSE push**: server pushes changes instantly. No polling overhead. Adds connection management complexity.
+
+### Q: A user has 100,000 files. Initial sync (cursor=0) returns ALL changes from the beginning. Isn't that slow?
+
+Yes, if naive. The initial sync pages through history at 100 changes per response. 100K changes = 1,000 API calls.
+
+Optimizations:
+
+1. **Larger page size for initial sync** — detect cursor=0 and use limit=1000 instead of 100. 100 API calls instead of 1,000.
+2. **Snapshot endpoint** — instead of replaying the full change history, provide `GET /snapshot` that returns the current file tree as-is. The client builds its local state from the snapshot, then switches to incremental sync from the latest cursor. Much faster for initial sync.
+3. **Compressed responses** — enable gzip on the API. Change log entries compress well (repetitive JSON structure).
+4. **Stream instead of page** — use chunked transfer encoding to stream changes without pagination overhead. The client processes changes as they arrive.
+
+MVP: paging with limit=100 is fine. At 50 users, initial sync takes seconds.
+
+### Q: What happens if the server writes a change_log entry but the Postgres transaction that created the file rolls back?
+
+It can't happen. The change_log INSERT is inside the same transaction as the file creation:
+
+```sql
+BEGIN;
+  INSERT INTO nodes (...);
+  INSERT INTO versions (...);
+  INSERT INTO change_log (...);
+COMMIT;
+```
+
+If any statement fails, the entire transaction rolls back — including the change_log entry. The change_log is always consistent with the metadata.
+
+This is why we use Postgres for the change_log (not a separate system like Kafka) — we get transactional consistency for free.
+
+### Q: How does "conflicted copy" work in practice? Walk through a real scenario.
+
+**Setup:** Alice and Bob both have editor access to `report.pdf` (version V1).
+
+**Timeline:**
+1. Alice goes offline, edits `report.pdf` locally
+2. Bob (online) uploads a new version → `report.pdf` is now V2
+3. Alice comes back online
+
+**What happens:**
+1. Alice's sync daemon polls, sees that `report.pdf` was updated (V2)
+2. Alice's daemon detects conflict: Alice's local changes were based on V1, but server is at V2
+3. Alice's daemon:
+   a. Downloads V2 and replaces local `report.pdf` (server wins)
+   b. Saves Alice's local version as `report (conflicted copy - Alice - 2026-11-14).pdf`
+   c. Uploads the conflicted copy to the server as a new file
+4. Both Alice and Bob now see both files
+5. Alice manually resolves: keeps the version she wants, deletes the other
+
+**Why server-wins + conflicted copy:**
+- Simple, predictable, no data loss
+- Same strategy as Dropbox
+- Merging file content automatically is impossible for binary files (images, PDFs)
+- For text files, a merge could be attempted, but that's a "Could Have" feature — not MVP
+
+### Q: Can the change_log have gaps in sequence numbers?
+
+Yes, and it's fine. BIGSERIAL in Postgres is NOT gap-free across transactions:
+
+- Transaction A gets seq=100, transaction B gets seq=101
+- Transaction A rolls back → seq=100 is never used
+- The change_log jumps from 99 to 101
+
+This doesn't break anything. The cursor is `seq > $cursor`, not `seq = $cursor + 1`. The client sees 99, then 101, and stores cursor=101. The gap is invisible.
+
+Gaps can also appear from:
+- Pruned entries (old changes deleted)
+- Failed transactions
+
+The cursor contract is: "give me everything after this number." It doesn't assume contiguous sequences.
+
+---
+
+*More sections will be added as project setup documents are completed.*
