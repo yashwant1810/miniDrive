@@ -29,6 +29,9 @@ docker-compose.override.yml
 *~
 .kiro/
 
+# Personal task tracking
+**/tasklist.md
+
 # OS
 .DS_Store
 Thumbs.db
