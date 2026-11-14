@@ -1,0 +1,184 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="class-diagram" name="MiniDrive Class / Package Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- ═══════════════════  ROW 1 — cmd packages (blue)  ═══════════════════ -->
+
+        <mxCell id="2" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;cmd/server&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;func main()&lt;br&gt;&amp;nbsp;&amp;nbsp;— wires Config, Store, S3Client, Auth&lt;br&gt;&amp;nbsp;&amp;nbsp;— registers HTTP routes on http.ServeMux&lt;br&gt;&amp;nbsp;&amp;nbsp;— starts net/http server" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="280" y="20" width="340" height="150" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="3" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;cmd/cli&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;func main()&lt;br&gt;&amp;nbsp;&amp;nbsp;— cobra root command&lt;br&gt;&amp;nbsp;&amp;nbsp;— subcommands: upload, download, ls, ..." style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="780" y="20" width="340" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════  ROW 2 — internal packages upper (green)  ═══════════════════ -->
+
+        <mxCell id="4" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/config&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type Config struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;Port, DBUrl, S3Endpoint string&lt;br&gt;&amp;nbsp;&amp;nbsp;S3Bucket, JWTSecret&amp;nbsp;&amp;nbsp;string&lt;br&gt;}&lt;br&gt;&lt;br&gt;func Load() (*Config, error)" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="20" y="260" width="320" height="190" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="5" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/auth&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type Claims struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;Sub, Email, JTI string&lt;br&gt;&amp;nbsp;&amp;nbsp;Exp int64&lt;br&gt;}&lt;br&gt;&lt;br&gt;func HashPassword(pw string) (string, error)&lt;br&gt;func CheckPassword(pw, hash string) error&lt;br&gt;func GenerateAccessToken(uid, email) (string, error)&lt;br&gt;func GenerateRefreshToken() (string, error)&lt;br&gt;func Middleware(next http.Handler) http.Handler" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="370" y="260" width="350" height="270" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="6" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/handler&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type Handler struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;DB storage.Store&lt;br&gt;&amp;nbsp;&amp;nbsp;S3 s3client.S3Client&lt;br&gt;}&lt;br&gt;&lt;br&gt;&lt;i&gt;Auth:&lt;/i&gt; Signup, Login, Refresh, Logout&lt;br&gt;&lt;i&gt;File:&lt;/i&gt; InitUpload, CommitUpload, Download&lt;br&gt;&lt;i&gt;Folder:&lt;/i&gt; Create, List, Update, Delete&lt;br&gt;&lt;i&gt;Share:&lt;/i&gt; Grant, Revoke, Update, List&lt;br&gt;&lt;i&gt;Sync:&lt;/i&gt; GetChanges&lt;br&gt;&lt;i&gt;Trash:&lt;/i&gt; List, Restore, Purge&lt;br&gt;&lt;i&gt;Version:&lt;/i&gt; ListVersions, RestoreVersion" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="750" y="250" width="380" height="310" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="7" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/acl&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type Permission string&lt;br&gt;&amp;nbsp;&amp;nbsp;(read | write | share)&lt;br&gt;&lt;br&gt;func ResolveRole(ctx, db, userID, nodeID) (string, error)&lt;br&gt;func CheckPermission(ctx, db, userID, nodeID, perm) error" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="260" width="350" height="190" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════  ROW 3 — internal packages lower (green)  ═══════════════════ -->
+
+        <mxCell id="8" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/storage&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type Store interface {&lt;br&gt;&amp;nbsp;&amp;nbsp;CreateUser, GetUserByEmail&lt;br&gt;&amp;nbsp;&amp;nbsp;CreateNode, GetNode, ListFolder&lt;br&gt;&amp;nbsp;&amp;nbsp;CreateVersion, CommitVersion&lt;br&gt;&amp;nbsp;&amp;nbsp;CreateShare, DeleteShare&lt;br&gt;&amp;nbsp;&amp;nbsp;GetChanges, ...&lt;br&gt;}&lt;br&gt;&lt;br&gt;type PgStore struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;pool *pgxpool.Pool&lt;br&gt;}&lt;br&gt;// implements Store" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="650" width="350" height="270" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="9" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/s3client&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type S3Client interface {&lt;br&gt;&amp;nbsp;&amp;nbsp;GeneratePresignedUploadURL(...)&lt;br&gt;&amp;nbsp;&amp;nbsp;GeneratePresignedDownloadURL(...)&lt;br&gt;&amp;nbsp;&amp;nbsp;CheckChunkExists(...)&lt;br&gt;&amp;nbsp;&amp;nbsp;DeleteChunk(...)&lt;br&gt;}&lt;br&gt;&lt;br&gt;type Client struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;client *s3.Client&lt;br&gt;&amp;nbsp;&amp;nbsp;bucket string&lt;br&gt;}" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="420" y="650" width="350" height="250" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="10" value="&lt;font style=&quot;font-size:13px&quot;&gt;&lt;b&gt;internal/model&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;br&gt;type User struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;ID, Email, PasswordHash string&lt;br&gt;&amp;nbsp;&amp;nbsp;QuotaBytes, UsedBytes int64; CreatedAt&lt;br&gt;}&lt;br&gt;&lt;br&gt;type Node struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;ID, OwnerID, ParentID, Name, Type string&lt;br&gt;&amp;nbsp;&amp;nbsp;CurrentVersionID string&lt;br&gt;&amp;nbsp;&amp;nbsp;DeletedAt, CreatedAt, UpdatedAt&lt;br&gt;}&lt;br&gt;&lt;br&gt;type Version struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;ID, NodeID, Status, CreatedBy string&lt;br&gt;&amp;nbsp;&amp;nbsp;Size int64; CreatedAt&lt;br&gt;}&lt;br&gt;&lt;br&gt;type Chunk struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;Hash, S3Key string&lt;br&gt;&amp;nbsp;&amp;nbsp;Size int64; RefCount int&lt;br&gt;}&lt;br&gt;&lt;br&gt;type Share struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;ID, NodeID, GranteeID, Role string&lt;br&gt;&amp;nbsp;&amp;nbsp;CreatedAt time.Time&lt;br&gt;}&lt;br&gt;&lt;br&gt;type ChangeLogEntry struct {&lt;br&gt;&amp;nbsp;&amp;nbsp;Seq int64; UserID, NodeID string&lt;br&gt;&amp;nbsp;&amp;nbsp;Op, Metadata string; CreatedAt&lt;br&gt;}" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=top;align=left;spacingLeft=8;spacingTop=4;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="850" y="630" width="400" height="460" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════  ROW 4 — external dependencies (yellow)  ═══════════════════ -->
+
+        <mxCell id="11" value="&lt;b&gt;pgx&lt;/b&gt;&lt;br&gt;PostgreSQL driver" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1160" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="12" value="&lt;b&gt;aws-sdk-go-v2&lt;/b&gt;&lt;br&gt;S3 / MinIO client" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="430" y="1160" width="260" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="13" value="&lt;b&gt;golang-jwt/jwt&lt;/b&gt;&lt;br&gt;JWT tokens" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="780" y="1160" width="250" height="50" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="14" value="&lt;b&gt;cobra&lt;/b&gt;&lt;br&gt;CLI framework" style="rounded=1;whiteSpace=wrap;html=1;verticalAlign=middle;align=center;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1130" y="1160" width="200" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════  TITLE  ═══════════════════ -->
+
+        <mxCell id="15" value="&lt;b&gt;&lt;font style=&quot;font-size:18px&quot;&gt;MiniDrive — Class / Package Diagram&lt;/font&gt;&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="250" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- ═══════════════════  DEPENDENCY ARROWS  ═══════════════════ -->
+
+        <!-- cmd/server → internal/config -->
+        <mxCell id="20" edge="1" source="2" target="4" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/server → internal/auth -->
+        <mxCell id="21" edge="1" source="2" target="5" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/server → internal/handler -->
+        <mxCell id="22" edge="1" source="2" target="6" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/server → internal/storage -->
+        <mxCell id="23" edge="1" source="2" target="8" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/server → internal/s3client -->
+        <mxCell id="24" edge="1" source="2" target="9" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/cli → internal/config -->
+        <mxCell id="25" edge="1" source="3" target="4" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/cli → internal/s3client -->
+        <mxCell id="26" edge="1" source="3" target="9" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/cli → internal/model -->
+        <mxCell id="27" edge="1" source="3" target="10" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- cmd/cli → cobra -->
+        <mxCell id="28" edge="1" source="3" target="14" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- handler → internal/storage -->
+        <mxCell id="30" edge="1" source="6" target="8" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- handler → internal/s3client -->
+        <mxCell id="31" edge="1" source="6" target="9" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- handler → internal/auth -->
+        <mxCell id="32" edge="1" source="6" target="5" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- handler → internal/acl -->
+        <mxCell id="33" edge="1" source="6" target="7" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- handler → internal/model -->
+        <mxCell id="34" edge="1" source="6" target="10" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- storage → internal/model -->
+        <mxCell id="35" edge="1" source="8" target="10" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- storage → pgx -->
+        <mxCell id="36" edge="1" source="8" target="11" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- s3client → aws-sdk-go-v2 -->
+        <mxCell id="37" edge="1" source="9" target="12" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- auth → internal/model -->
+        <mxCell id="38" edge="1" source="5" target="10" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- auth → golang-jwt -->
+        <mxCell id="39" edge="1" source="5" target="13" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- acl → internal/storage -->
+        <mxCell id="40" edge="1" source="7" target="8" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- acl → internal/model -->
+        <mxCell id="41" edge="1" source="7" target="10" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#808080;strokeWidth=1.5;endArrow=block;endFill=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

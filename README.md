@@ -16,6 +16,12 @@ Two-plane design:
 
 ![System Architecture — HLD](design/v1/Task1HLDArchitecture.drawio.png)
 
+## Database Schema
+
+8 tables across 5 domains: auth (users, refresh_tokens), file tree (nodes, versions), blob (chunks, version_chunks), sharing (shares), and sync (change_log).
+
+![Database Schema — ER Diagram](design/v1/Task4DatabaseSchema.png)
+
 ## Tech Stack
 
 See [docs/tech-stack.md](docs/tech-stack.md) for full details and reasoning.
@@ -30,6 +36,21 @@ See [docs/tech-stack.md](docs/tech-stack.md) for full details and reasoning.
 | Compute      | EC2 t2.micro (free tier)       |
 | Auth         | DIY JWT (bcrypt + short-lived) |
 
+## Design Documents
+
+All design docs live in [`design/v1/`](design/v1/).
+
+| Doc | What it covers |
+| --- | --- |
+| [HLD Document](design/v1/Task2HLDdoc.md) | Consistency model, failure modes, capacity estimates (100M users), scaling strategy, trade-offs |
+| [API Spec](design/v1/Task3APISpec.md) | Every endpoint — request/response shapes, error codes, auth, rate limiting |
+| [Database Schema](design/v1/Task4DatabaseSchema.md) | All tables with SQL, indexes, constraints, and design decisions |
+| [Auth Flow](design/v1/Task5AuthFlow.md) | Signup, login, JWT structure, refresh, middleware chain, security |
+| [Sharing & ACL](design/v1/Task6SharingACL.md) | Roles, inheritance, permission resolution, grant/revoke flows, scaling |
+| [Sequence Diagrams](design/v1/Task8SequenceDiagrams.drawio) | Auth, chunked upload, download, sync polling, share grant/revoke |
+| [Class Diagram](design/v1/Task10ClassDiagram.drawio) | Go packages, structs, interfaces, dependencies |
+| [Real-World Q&A](RealWorldQuestions.md) | Interview-style follow-ups on every design decision |
+
 ## Status
 
-🚧 Phase 0 — Design
+🚧 Phase 0 — Design (tasks 1–10 complete, protocols & project setup remaining)
