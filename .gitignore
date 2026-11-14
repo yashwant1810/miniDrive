@@ -1,0 +1,47 @@
+# Go
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Next.js (web UI, Phase 6+)
+web/.next/
+web/node_modules/
+web/out/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.kiro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# MinIO local data
+minio-data/
+
+# Postgres local data
+pgdata/
+
+# Compiled binary
+minidrive
+minidrive-cli
