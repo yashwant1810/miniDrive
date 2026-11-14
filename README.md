@@ -16,6 +16,12 @@ Two-plane design:
 
 ![System Architecture — HLD](design/v1/Task1HLDArchitecture.drawio.png)
 
+## Key Flows
+
+- **Upload**: client chunks file (4 MB, SHA-256) → API returns presigned PUT URLs → client uploads directly to S3 → API verifies and commits to Postgres
+- **Download**: API returns presigned GET URLs → client downloads chunks from S3 → verifies hashes → reassembles
+- **Sync**: cursor-based polling (`GET /changes?cursor=N`) every 10 seconds. Conflict resolution via "conflicted copy" files.
+
 ## Database Schema
 
 8 tables across 5 domains: auth (users, refresh_tokens), file tree (nodes, versions), blob (chunks, version_chunks), sharing (shares), and sync (change_log).
@@ -36,21 +42,89 @@ See [docs/tech-stack.md](docs/tech-stack.md) for full details and reasoning.
 | Compute      | EC2 t2.micro (free tier)       |
 | Auth         | DIY JWT (bcrypt + short-lived) |
 
+## Project Structure
+
+```
+miniDrive/
+├── cmd/server/          # API server entry point
+├── cmd/cli/             # CLI client (cobra)
+├── internal/
+│   ├── auth/            # JWT, password hashing, middleware
+│   ├── handler/         # HTTP handlers + routes
+│   ├── storage/         # Postgres queries (pgx)
+│   ├── s3client/        # S3/MinIO presigned URLs
+│   ├── acl/             # Permission resolution
+│   ├── model/           # Shared structs
+│   ├── config/          # Env-based config
+│   └── cleanup/         # Orphan chunk cleanup job
+├── migrations/          # SQL migrations (goose)
+├── scripts/             # Seed data, DB reset
+├── docker-compose.yml   # Postgres + MinIO
+└── Makefile             # Build, run, test, migrate
+```
+
+See [Task 13](design/v1/Task13ProjectStructure.md) for full details.
+
+## Local Dev
+
+```bash
+cp .env.example .env
+docker compose up -d
+goose -dir migrations postgres "$DATABASE_URL" up
+go run ./cmd/server
+```
+
+See [Task 14](design/v1/Task14LocalDevSetup.md) for full setup guide, docker-compose config, seed data, and testing strategy.
+
 ## Design Documents
 
 All design docs live in [`design/v1/`](design/v1/).
 
+### High-Level Design
+
 | Doc | What it covers |
 | --- | --- |
 | [HLD Document](design/v1/Task2HLDdoc.md) | Consistency model, failure modes, capacity estimates (100M users), scaling strategy, trade-offs |
+
+### Low-Level Design
+
+| Doc | What it covers |
+| --- | --- |
 | [API Spec](design/v1/Task3APISpec.md) | Every endpoint — request/response shapes, error codes, auth, rate limiting |
 | [Database Schema](design/v1/Task4DatabaseSchema.md) | All tables with SQL, indexes, constraints, and design decisions |
 | [Auth Flow](design/v1/Task5AuthFlow.md) | Signup, login, JWT structure, refresh, middleware chain, security |
 | [Sharing & ACL](design/v1/Task6SharingACL.md) | Roles, inheritance, permission resolution, grant/revoke flows, scaling |
+
+### Diagrams
+
+| Doc | What it covers |
+| --- | --- |
+| [Architecture Diagram](design/v1/Task1HLDArchitecture.drawio) | Component diagram with network zones (public internet, VPC, AWS managed) |
+| [ER Diagram](design/v1/Task4DatabaseSchema.drawio) | All 8 tables, columns, relationships, color-coded by domain |
 | [Sequence Diagrams](design/v1/Task8SequenceDiagrams.drawio) | Auth, chunked upload, download, sync polling, share grant/revoke |
 | [Class Diagram](design/v1/Task10ClassDiagram.drawio) | Go packages, structs, interfaces, dependencies |
-| [Real-World Q&A](RealWorldQuestions.md) | Interview-style follow-ups on every design decision |
+
+### Protocols & Flows
+
+| Doc | What it covers |
+| --- | --- |
+| [Upload/Download Flow](design/v1/Task11UploadDownloadFlow.md) | Chunking, presigned URLs, parallel transfer, resume, dedup, error handling |
+| [Sync Protocol](design/v1/Task12SyncProtocol.md) | Cursor-based change feed, conflict detection, conflicted copies, offline behavior, multi-device sync |
+
+### Project Setup
+
+| Doc | What it covers |
+| --- | --- |
+| [Project Structure](design/v1/Task13ProjectStructure.md) | Go module layout, package responsibilities, dependency graph, Makefile |
+| [Local Dev Setup](design/v1/Task14LocalDevSetup.md) | Docker Compose, env config, migrations, seed data, dev workflow, testing |
+
+### Interview Prep
+
+| Doc | What it covers |
+| --- | --- |
+| [Real-World Q&A](RealWorldQuestions.md) | 40+ interview-style follow-ups across all design decisions |
 
 ## Status
 
-🚧 Phase 0 — Design (tasks 1–10 complete, protocols & project setup remaining)
+✅ Phase 0 — Design complete (all 14 tasks)
+🚧 Phase 1 — Implementation starting
