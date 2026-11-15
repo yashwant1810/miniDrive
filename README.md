@@ -22,6 +22,8 @@ Two-plane design:
 - **Download**: API returns presigned GET URLs → client downloads chunks from S3 → verifies hashes → reassembles
 - **Sync**: cursor-based polling (`GET /changes?cursor=N`) every 10 seconds. Conflict resolution via "conflicted copy" files.
 
+Detailed sequence diagrams: [Auth](design/v1/Task8Seq_Auth.md) · [Upload](design/v1/Task8Seq_Upload.md) · [Download](design/v1/Task8Seq_Download.md) · [Sync](design/v1/Task8Seq_SyncPolling.md) · [Sharing](design/v1/Task8Seq_Sharing.md)
+
 ## Database Schema
 
 8 tables across 5 domains: auth (users, refresh_tokens), file tree (nodes, versions), blob (chunks, version_chunks), sharing (shares), and sync (change_log).
@@ -63,7 +65,7 @@ miniDrive/
 └── Makefile             # Build, run, test, migrate
 ```
 
-See [Task 13](design/v1/Task13ProjectStructure.md) for full details.
+See [Task 13](design/v1/Task13ProjectStructure.md) for full details and [class diagram](design/v1/Task10ClassDiagram.md) for package dependencies.
 
 ## Local Dev
 
@@ -99,10 +101,10 @@ All design docs live in [`design/v1/`](design/v1/).
 
 | Doc | What it covers |
 | --- | --- |
-| [Architecture Diagram](design/v1/Task1HLDArchitecture.drawio) | Component diagram with network zones (public internet, VPC, AWS managed) |
-| [ER Diagram](design/v1/Task4DatabaseSchema.drawio) | All 8 tables, columns, relationships, color-coded by domain |
-| [Sequence Diagrams](design/v1/Task8SequenceDiagrams.drawio) | Auth, chunked upload, download, sync polling, share grant/revoke |
-| [Class Diagram](design/v1/Task10ClassDiagram.drawio) | Go packages, structs, interfaces, dependencies |
+| [Architecture Diagram](design/v1/Task1HLDArchitecture.drawio) | Component diagram with network zones |
+| [ER Diagram](design/v1/Task4DatabaseSchema.drawio) | All 8 tables, columns, relationships |
+| [Class Diagram](design/v1/Task10ClassDiagram.md) | Go packages, structs, interfaces, dependencies (Mermaid) |
+| Sequence Diagrams | [Auth](design/v1/Task8Seq_Auth.md) · [Upload](design/v1/Task8Seq_Upload.md) · [Download](design/v1/Task8Seq_Download.md) · [Sync](design/v1/Task8Seq_SyncPolling.md) · [Sharing](design/v1/Task8Seq_Sharing.md) |
 
 ### Protocols & Flows
 
