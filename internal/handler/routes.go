@@ -19,6 +19,12 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	// Protected routes (auth required)
 	mux.Handle("POST /v1/auth/logout", protected(http.HandlerFunc(h.handleLogout)))
 
+	// Folders
+	mux.Handle("POST /v1/folders", protected(http.HandlerFunc(h.handleCreateFolder)))
+	mux.Handle("GET /v1/folders/{folder_id}", protected(http.HandlerFunc(h.handleListFolder)))
+	mux.Handle("PATCH /v1/folders/{folder_id}", protected(http.HandlerFunc(h.handleUpdateFolder)))
+	mux.Handle("DELETE /v1/folders/{folder_id}", protected(http.HandlerFunc(h.handleDeleteFolder)))
+
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

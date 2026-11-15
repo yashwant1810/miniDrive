@@ -20,6 +20,13 @@ type Store interface {
 	ValidateRefreshToken(ctx context.Context, tokenHash string) (*model.RefreshToken, error)
 	RevokeRefreshToken(ctx context.Context, tokenHash string, userID uuid.UUID) error
 	RevokeAllRefreshTokens(ctx context.Context, userID uuid.UUID) error
+
+	// Nodes (files + folders)
+	CreateNode(ctx context.Context, node *model.Node) (*model.Node, error)
+	GetNode(ctx context.Context, id uuid.UUID) (*model.Node, error)
+	ListFolder(ctx context.Context, parentID *uuid.UUID, ownerID uuid.UUID, cursor string, limit int) ([]model.Node, string, error)
+	UpdateNode(ctx context.Context, id uuid.UUID, name *string, parentID *uuid.UUID) (*model.Node, error)
+	SoftDeleteNode(ctx context.Context, id uuid.UUID) error
 }
 
 // PgStore implements Store using a pgx connection pool.
