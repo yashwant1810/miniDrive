@@ -28,7 +28,7 @@ Detailed sequence diagrams: [Auth](design/v1/Task8Seq_Auth.md) · [Upload](desig
 
 8 tables across 5 domains: auth (users, refresh_tokens), file tree (nodes, versions), blob (chunks, version_chunks), sharing (shares), and sync (change_log).
 
-![Database Schema — ER Diagram](design/v1/Task4DatabaseSchema.png)
+![Database Schema — ER Diagram](design/v1/Task4DatabaseSchema.drawio.png)
 
 ## Tech Stack
 
