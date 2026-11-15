@@ -27,6 +27,17 @@ type Store interface {
 	ListFolder(ctx context.Context, parentID *uuid.UUID, ownerID uuid.UUID, cursor string, limit int) ([]model.Node, string, error)
 	UpdateNode(ctx context.Context, id uuid.UUID, name *string, parentID *uuid.UUID) (*model.Node, error)
 	SoftDeleteNode(ctx context.Context, id uuid.UUID) error
+
+	// Versions
+	CreateVersion(ctx context.Context, nodeID uuid.UUID, size int64, createdBy uuid.UUID) (*model.Version, error)
+	CommitVersion(ctx context.Context, versionID uuid.UUID, nodeID uuid.UUID) error
+	GetVersion(ctx context.Context, id uuid.UUID) (*model.Version, error)
+
+	// Chunks
+	UpsertChunks(ctx context.Context, chunks []model.Chunk) error
+	GetExistingChunkHashes(ctx context.Context, hashes []string) (map[string]bool, error)
+	CreateVersionChunks(ctx context.Context, versionID uuid.UUID, chunks []model.VersionChunk) error
+	GetVersionChunks(ctx context.Context, versionID uuid.UUID) ([]model.VersionChunk, error)
 }
 
 // PgStore implements Store using a pgx connection pool.

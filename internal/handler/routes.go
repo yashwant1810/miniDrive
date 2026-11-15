@@ -25,6 +25,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("PATCH /v1/folders/{folder_id}", protected(http.HandlerFunc(h.handleUpdateFolder)))
 	mux.Handle("DELETE /v1/folders/{folder_id}", protected(http.HandlerFunc(h.handleDeleteFolder)))
 
+	// Files
+	mux.Handle("POST /v1/files", protected(http.HandlerFunc(h.handleInitUpload)))
+	mux.Handle("POST /v1/files/{file_id}/commit", protected(http.HandlerFunc(h.handleCommit)))
+	mux.Handle("GET /v1/files/{file_id}/download", protected(http.HandlerFunc(h.handleDownload)))
+
 	// Health check
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

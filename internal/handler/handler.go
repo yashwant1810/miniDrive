@@ -5,19 +5,22 @@ import (
 	"net/http"
 
 	"github.com/yashwant1810/miniDrive/internal/config"
+	"github.com/yashwant1810/miniDrive/internal/s3client"
 	"github.com/yashwant1810/miniDrive/internal/storage"
 )
 
 // Handler holds dependencies shared across all HTTP handlers.
 type Handler struct {
-	Store  storage.Store
-	Config *config.Config
+	Store    storage.Store
+	S3       s3client.S3Client
+	Config   *config.Config
 }
 
 // New creates a new Handler.
-func New(store storage.Store, cfg *config.Config) *Handler {
+func New(store storage.Store, s3 s3client.S3Client, cfg *config.Config) *Handler {
 	return &Handler{
 		Store:  store,
+		S3:     s3,
 		Config: cfg,
 	}
 }

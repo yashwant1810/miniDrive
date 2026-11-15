@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yashwant1810/miniDrive/internal/config"
 	"github.com/yashwant1810/miniDrive/internal/handler"
+	"github.com/yashwant1810/miniDrive/internal/s3client"
 	"github.com/yashwant1810/miniDrive/internal/storage"
 )
 
@@ -29,15 +30,28 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Verify connection
 	if err := pool.Ping(context.Background()); err != nil {
 		log.Fatalf("failed to ping database: %v", err)
 	}
 	log.Println("connected to database")
 
+	// Initialize S3/MinIO client
+	s3, err := s3client.New(
+		cfg.S3Endpoint,
+		cfg.S3Bucket,
+		cfg.S3Region,
+		cfg.S3AccessKey,
+		cfg.S3SecretKey,
+		cfg.S3UsePathStyle,
+	)
+	if err != nil {
+		log.Fatalf("failed to create s3 client: %v", err)
+	}
+	log.Println("connected to s3")
+
 	// Initialize store and handler
 	store := storage.NewPgStore(pool)
-	h := handler.New(store, cfg)
+	h := handler.New(store, s3, cfg)
 
 	// Register routes
 	mux := http.NewServeMux()
