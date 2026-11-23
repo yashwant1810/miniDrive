@@ -21,8 +21,8 @@ type Config struct {
 
 func Load() *Config {
 	return &Config{
-		Port:                  getEnv("PORT", "8080"),
-		DatabaseURL:           getEnv("DATABASE_URL", "postgres://minidrive:minidrive@localhost:5432/minidrive?sslmode=disable"),
+		Port:                  getEnv("PORT", "8081"),
+		DatabaseURL:           getEnv("DATABASE_URL", "postgres://minidrive:minidrive@localhost:5434/minidrive?sslmode=disable"),
 		S3Endpoint:            getEnv("S3_ENDPOINT", "http://localhost:9000"),
 		S3Bucket:              getEnv("S3_BUCKET", "minidrive-chunks"),
 		S3Region:              getEnv("S3_REGION", "us-east-1"),

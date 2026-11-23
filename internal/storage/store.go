@@ -29,7 +29,8 @@ type Store interface {
 	SoftDeleteNode(ctx context.Context, id uuid.UUID) error
 
 	// Versions
-	CreateVersion(ctx context.Context, nodeID uuid.UUID, size int64, createdBy uuid.UUID) (*model.Version, error)
+	CreateVersion(ctx context.Context, nodeID uuid.UUID, size int64, createdBy uuid.UUID, idempotencyKey string) (*model.Version, error)
+	GetUploadingVersionByKey(ctx context.Context, createdBy uuid.UUID, key string) (*model.Version, error)
 	CommitVersion(ctx context.Context, versionID uuid.UUID, nodeID uuid.UUID) error
 	GetVersion(ctx context.Context, id uuid.UUID) (*model.Version, error)
 

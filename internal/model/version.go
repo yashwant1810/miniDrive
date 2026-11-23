@@ -7,10 +7,11 @@ import (
 )
 
 type Version struct {
-	ID        uuid.UUID `json:"id"`
-	NodeID    uuid.UUID `json:"node_id"`
-	Size      int64     `json:"size"`
-	Status    string    `json:"status"`
-	CreatedBy uuid.UUID `json:"created_by"`
-	CreatedAt time.Time `json:"created_at"`
+	ID             uuid.UUID `json:"id"`
+	NodeID         uuid.UUID `json:"node_id"`
+	Size           int64     `json:"size"`
+	Status         string    `json:"status"`
+	CreatedBy      uuid.UUID `json:"created_by"`
+	IdempotencyKey *string   `json:"idempotency_key,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
 }
